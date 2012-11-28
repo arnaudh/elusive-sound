@@ -1,0 +1,229 @@
+package org.elusive.sound.melody.tabs;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.JPanel;
+
+import org.elusive.main.tools.IOtools;
+import org.elusive.sound.genetics.Geneticable;
+import org.elusive.sound.melody.tabs.TabNote.SLIDE;
+
+
+
+public class GuitarTab implements Geneticable {
+
+//	private ArrayList<ArrayList<GuitarTabNote>> tranches = new ArrayList<ArrayList<GuitarTabNote>>();
+	private List<Couplet> couplets = new ArrayList<Couplet>();
+
+	public GuitarTab() {
+	}
+	
+	public static GuitarTab fromString(String string){
+		GuitarTab tab = new GuitarTab();
+		
+
+		String[] lines = string.split("\n");
+		short corde = 5;
+		int lastLineLength = 0;
+		int offset = 0;
+		int numLine = 0;
+		int globalOffset = 0;
+		
+		Couplet couplet = new Couplet();
+		tab.couplets.add(couplet);
+		for (String ligne : lines) {
+			boolean match = false;
+			// System.out.println("NEW LINE :");
+			// System.out.println(ligne);
+			Pattern pattern = Pattern.compile("(?<=[-b~p/])((?:/|\\\\|r)?)(\\d+)([b~p/]*)");
+			Matcher matcher = pattern.matcher(ligne);
+			while (matcher.find()) {
+				match = true;
+				// System.out.println("MATCHER FIND");
+				String group = matcher.group();
+				int start = matcher.start(1);
+				String prefix = matcher.group(1);
+				String nombre = matcher.group(2);
+				String suffix = matcher.group(3);
+				// System.out.println("match = "+group);
+				// System.out.println("start = "+start);
+				// System.out.println("nombre = "+nombre);
+				short frette = Short.parseShort(nombre);
+//				System.out.println("offset("+offset+") + start = "+(offset+start));
+				TabNote note = new TabNote(corde, frette, offset + start);
+				note.setGlobalOffset(globalOffset + start);
+				if (prefix.matches("/")) {
+					note.setSlideBefore(SLIDE.SLIDE_UP);
+				} else if (prefix.matches("\\\\")) {
+					note.setSlideBefore(SLIDE.SLIDE_DOWN);
+				}
+				if (suffix.matches("[b~]+")) {
+					note.setBend(true);
+				} else if (suffix.matches("/")) {
+					note.setSlideAfter(SLIDE.SLIDE_UP);
+				}
+
+				int offsetNote = note.getOffset();
+//				System.out.println("note : "+note);
+				// ************** INSERTION ****************** //
+				boolean inserted = false;
+				for (int i = 0, l = couplet.size(); i < l; i++) {
+					int offsetTranche = couplet.get(i).get(0).getOffset();
+					if (offsetTranche == offsetNote) {
+//						System.out.println("insert in "+tab.tranches.get(i));
+						couplet.get(i).add(note);
+						inserted = true;
+						break;
+					} else if (offsetTranche > offsetNote) {
+						Tranche newTranche = new Tranche();
+						newTranche.add(note);
+						couplet.add(i, newTranche);
+						inserted = true;
+						break;
+					}
+				}
+				if (!inserted) {
+					Tranche newTranche = new Tranche();
+					newTranche.add(note);
+					couplet.add(newTranche);
+				}
+			}
+			if (ligne.contains("--")) {
+				match = true;
+				lastLineLength = ligne.length();
+			}
+			if (match) {
+				corde--;
+				if (corde < 0) { //nouveau couplet
+					corde = 5;
+					offset += lastLineLength;
+					
+					
+					//on vérifie que le dernier couplet ajouté n'est pas un couplet vide)
+					if( couplet.isEmpty() ){
+						tab.couplets.remove(couplet);						
+					}
+					couplet = new Couplet();
+					tab.couplets.add(couplet);
+				}
+			} else {
+				corde = 5;
+			}
+			numLine ++;
+			globalOffset += ligne.length() + 1;
+		}
+		//on vérifie que le dernier couplet ajouté n'est pas un couplet vide)
+		if( couplet.isEmpty() ){
+			tab.couplets.remove(couplet);
+		}
+//		System.out.println("ici");
+//		for( Couplet c : tab.couplets ){
+//			System.out.println("couplet");
+//			for (Tranche tranche : c) {
+//				System.out.println("tranche : "+tranche);
+//			}
+//		}
+		return tab;
+	}
+
+	public static GuitarTab fromFile(String path) {
+		String string = IOtools.readFile(new File(path));
+		return fromString(string);
+	}
+	
+
+	public String toString() {
+		StringBuilder sbTotal = new StringBuilder();
+		StringBuilder[] sbs = new StringBuilder[6];
+		for( Couplet couplet : couplets){
+			for (int i = 0; i < 6; i++) {
+				sbs[i] = new StringBuilder('#');
+			}
+			//calcul du premier offset
+			int minOffset = Integer.MAX_VALUE;
+			for (Tranche tranche : couplet) {
+				int offset = tranche.get(0).getOffset();
+				if( offset < minOffset ) minOffset = offset;
+			}
+			minOffset -= 2;
+			for ( Tranche tranche : couplet ) {
+				for (TabNote note : tranche) {
+					int corde = note.getCorde();
+					int offset = note.getOffset() - minOffset;
+					while( sbs[5-corde].length() < offset ){
+						sbs[5-corde].append('-');
+					}
+					sbs[5-corde].append(note.toTabString());
+				}//for Notes
+			}//for Tranche
+			
+			int maxLenght = 0;
+			for (StringBuilder sb : sbs) {
+				int length = sb.length();
+				if( length > maxLenght ) maxLenght = length;
+			}
+			for (StringBuilder sb : sbs) {
+				while( sb.length() < maxLenght ){
+					sb.append('-');
+				}
+				sbTotal.append(sb).append('\n');
+			}
+			sbTotal.append('\n');
+		}//for Couplet
+		return sbTotal.toString();
+	}
+
+	
+	public static GuitarTab createSimple(){
+		final Couplet couplet = new Couplet();
+		couplet.add( new Tranche(new TabNote((short)0, (short)0, 2)) );
+		couplet.add( new Tranche(new TabNote((short)1, (short)4, 4)) );
+		couplet.add( new Tranche(new TabNote((short)2, (short)3, 6)) );
+		couplet.add( new Tranche(new TabNote((short)3, (short)0, 10)) );
+		couplet.add( new Tranche(new TabNote((short)4, (short)1, 12)) );
+		couplet.add( new Tranche(new TabNote((short)5, (short)0, 14)) );
+		GuitarTab tab = new GuitarTab();
+		ArrayList<Couplet> couplets = new ArrayList<Couplet>();
+		couplets.add(couplet);
+		tab.setCouplets(couplets);
+		return tab;
+	}
+
+	public List<Couplet> getCouplets() {
+		return couplets;
+	}
+
+	public void setCouplets(List<Couplet> couplets) {
+		this.couplets = couplets;
+	}
+	
+	
+	
+	//////////////////// GENETICABLE /////////////////////
+
+	@Override
+	public Geneticable mutate(double strength) {
+		// TODO Auto-generated method stub
+		//ICIIIIII
+		return this;
+	}
+
+	@Override
+	public Geneticable combineWith(Geneticable gen) {
+		// TODO Auto-generated method stub
+		return this;
+	}
+
+	@Override
+	public JPanel getPreviewPanel() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+
+}
+

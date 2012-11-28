@@ -1,0 +1,1116 @@
+package org.elusive.ui.grille;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.FileDialog;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Stroke;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.ActionMap;
+import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollBar;
+import javax.swing.KeyStroke;
+
+import org.elusive.main.historique.ActionHistoriqueMultiple;
+import org.elusive.main.historique.action.AjouteBloc;
+import org.elusive.main.historique.action.AjouteEffet;
+import org.elusive.main.historique.action.DeplaceBloc;
+import org.elusive.main.historique.action.ResizeBloc;
+import org.elusive.main.historique.action.SupprimeBloc;
+import org.elusive.main.performance.MemoryStatus;
+import org.elusive.main.tools.IOtools;
+import org.elusive.main.xml.XMLException;
+import org.elusive.main.xml.XmlTools;
+import org.elusive.sound.analyse.Analyser;
+import org.elusive.sound.blocs.Bloc;
+import org.elusive.sound.blocs.BlocFichier;
+import org.elusive.sound.blocs.BlocPositionne;
+import org.elusive.sound.blocs.frequenceur.Frequencable;
+import org.elusive.sound.blocs.frequenceur.Frequenceur;
+import org.elusive.sound.effets.Effet;
+import org.elusive.sound.genetics.GeneticExplorer;
+import org.elusive.sound.genetics.Geneticable;
+import org.elusive.sound.genetics.ui.GeneticExplorerPanel;
+import org.elusive.sound.genetics.ui.GeneticableAction;
+import org.elusive.sound.rythm.Rythm;
+import org.elusive.sound.tools.SoundTools;
+import org.elusive.ui.action.MyAction;
+import org.elusive.ui.action.shortcut.MyKeyStrokes;
+import org.elusive.ui.config.Colors;
+import org.elusive.ui.events.MouseEventTools;
+import org.elusive.ui.fenetre.ElusivePanel;
+import org.elusive.ui.fenetre.ShowableMenuFrame;
+import org.elusive.ui.tools.PopupListener;
+import org.elusive.ui.tools.file.DialogueFichier;
+
+public class GrillePanel extends ElusivePanel {
+
+	// UI Constants
+	private static final BasicStroke STROKE_BLOC_CONTOUR = new BasicStroke(1);
+	private static final BasicStroke STROKE_SELECTED_BLOC_CONTOUR = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[] { 20, 8 }, 0);
+	private static final int BLOC_ROUND_RECT_ARC_SIZE = 10;
+	private static final int PIXEL_TOLERANCE = 4;
+	private static final Cursor RESIZE_CURSOR = new Cursor(Cursor.E_RESIZE_CURSOR);
+	private static final Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
+	
+	private Grille grille;
+
+	private DragAction dragAction = DragAction.NONE;
+
+	private Point lastPress = null;
+	private Point lastClic = new Point(0, 0);
+	private Point lastDrag = null;
+	private BlocPositionne blocLastPress;
+	private int offsetGlobalLastPress;
+	private int yLastPress;
+	private Selection selection = null;
+
+
+	// déplacements
+	private static int decalageLigne = 0;
+	private static int decalageOffset = 0;
+	private static int decalageResize = 0;
+
+	// affichage
+	private int curseur_fictif = -1;
+	public static int hauteurLigne = 50; // pixels
+
+	public GrillePanel(final Grille grille) {
+		super("Grille Panel");
+		this.grille = grille;
+		this.frame = grille.fenetre;
+
+		this.setBackground(Colors.GRID_BACKGROUND_COLOR);
+		
+		/*
+		 * MODIFIERS for clic :
+		 * 
+		 * -none : -bloc : move around, resize bloc : -no bloc : rectangular
+		 * selection of blocs
+		 * 
+		 * -control/command : -bloc : add/remove bloc to selected blocs : -no
+		 * bloc : ?? : (points virtual cursor to closest hot point)
+		 * 
+		 * -alt : -bloc / no bloc : move grid around / zoom with mouse wheel
+		 * 
+		 * -shift : -bloc / no bloc : data-selection
+		 */
+
+		this.addMouseListener(new MouseListener() {
+
+			public void mouseReleased(MouseEvent e) {
+
+				ArrayList<BlocPositionne> blocsFixes = getBlocsFixes();
+				boolean ajoutable = true;
+
+				switch (dragAction) {
+				case BLOC_MOVE:
+					// on vérifie qu'on peut tout déplacer
+					for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+						if (!grille.ajoutable(bp.getLigne() + decalageLigne, bp.getDebut() + decalageOffset, bp.getFin() + decalageOffset, blocsFixes)) {
+							ajoutable = false;
+							break;
+						}
+					}
+					if (ajoutable) {
+						ActionHistoriqueMultiple action = new ActionHistoriqueMultiple("Déplace Blocs");
+						for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+							action.addAction(new DeplaceBloc(grille, bp, decalageLigne, decalageOffset));
+						}
+						grille.getHistorique().execute(action);
+					} else {
+						repaint();
+					}
+					break;
+				case BLOC_RESIZE_LEFT:
+					// on vérifie qu'on peut tout déplacer
+					for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+						if (!grille.ajoutable(bp.getLigne(), bp.getDebut() + decalageResize, bp.getFin(), blocsFixes)) {
+							ajoutable = false;
+							break;
+						}
+					}
+					if (ajoutable) {
+						ActionHistoriqueMultiple action = new ActionHistoriqueMultiple("Resize Blocs");
+						for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+							action.addAction(new ResizeBloc(grille, bp, decalageResize, 0));
+						}
+						grille.getHistorique().execute(action);
+					} else {
+						repaint();
+					}
+					break;
+				case BLOC_RESIZE_RIGHT:
+					// on vérifie qu'on peut tout déplacer
+					for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+						if (!grille.ajoutable(bp.getLigne(), bp.getDebut(), bp.getFin() + decalageResize, blocsFixes)) {
+							ajoutable = false;
+							break;
+						}
+					}
+					if (ajoutable) {
+						ActionHistoriqueMultiple action = new ActionHistoriqueMultiple("Resize Blocs");
+						for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+							action.addAction(new ResizeBloc(grille, bp, 0, decalageResize));
+						}
+						grille.getHistorique().execute(action);
+					} else {
+						repaint();
+					}
+					break;
+				}
+				dragAction = DragAction.NONE;
+
+				if (selection != null && selection.getDebut() == selection.getFin()) {
+					selection = null;
+				}
+
+				decalageLigne = 0;
+				decalageOffset = 0;
+				decalageResize = 0;
+
+			}
+
+			public void mousePressed(MouseEvent e) {
+				// TODO : corriger le bug
+				// "qd on press en dessous des lignes ça prend le bloc de la dernière ligne"
+				lastPress = e.getPoint();
+				offsetGlobalLastPress = grille.getOffset();
+
+				yLastPress = grille.getSrollVValue();
+				blocLastPress = blocAt(lastPress);
+
+				if (e.isAltDown()) {
+					// view
+					dragAction = DragAction.GRID_MOVE;
+					// enDeplacementGrille = true;
+				} else if (e.isShiftDown()) {
+					// data selection
+					dragAction = DragAction.DATA_SELECTION;
+					if (selection != null) {
+						if (Math.abs(e.getX() - offset2pixel(selection.getFin())) < PIXEL_TOLERANCE) {
+							selection.setDeuxiemeFin();
+							// enResizeSelection = true;
+						} else if (Math.abs(e.getX() - offset2pixel(selection.getDebut())) < PIXEL_TOLERANCE) {
+							selection.setDeuxiemeDebut();
+							// enResizeSelection = true;
+						} else {
+							selection = new Selection(pixel2offset(lastPress.x));
+							// enResizeSelection = true;
+						}
+					} else {
+						int selectionStart = (curseur_fictif != -1) ? curseur_fictif : pixel2offset(lastPress.x);
+						selection = new Selection(selectionStart);
+						// enResizeSelection = true;
+					}
+				} else if (MouseEventTools.isControlOrMetaDown(e)) {
+					// bloc selection
+					if (blocLastPress != null) {
+						if (grille.getBlocsSelectionnes().contains(blocLastPress)) {
+							grille.getBlocsSelectionnes().remove(blocLastPress);
+						} else {
+							grille.getBlocsSelectionnes().add(blocLastPress);
+						}
+					}
+
+				} else {
+					// blocs
+					if (blocLastPress == null) {
+						// rectangular bloc selection
+//						System.out.println("GrillePanel.GrillePanel(...).new MouseListener() {...}.mousePressed() TODO rectangular bloc selection");
+					} else {
+						if (Math.abs(e.getX() - offset2pixel(blocLastPress.getFin())) < PIXEL_TOLERANCE) {
+							dragAction = DragAction.BLOC_RESIZE_RIGHT;
+							// enResizeDroit = true;
+							// enResizeGauche = false;
+						} else if (Math.abs(e.getX() - offset2pixel(blocLastPress.getDebut())) < PIXEL_TOLERANCE) {
+							dragAction = DragAction.BLOC_RESIZE_LEFT;
+							// enResizeDroit = false;
+							// enResizeGauche = true;
+						} else {
+							dragAction = DragAction.BLOC_MOVE;
+						}
+						if (!grille.getBlocsSelectionnes().contains(blocLastPress)) {
+							grille.getBlocsSelectionnes().clear();
+							grille.getBlocsSelectionnes().add(blocLastPress);
+						}
+					}
+
+				}
+				repaint();
+			}
+
+			public void mouseExited(MouseEvent e) {
+			}
+
+			public void mouseEntered(MouseEvent e) {
+			}
+
+			public void mouseClicked(MouseEvent e) {
+				requestFocus();
+				switch (e.getButton()) {
+				case 1:
+					lastClic = e.getPoint();
+					BlocPositionne bloc = blocAt(lastClic);
+					switch (e.getClickCount()) {
+					case 1:
+						if (bloc == null) {
+							grille.getBlocsSelectionnes().clear();
+							selection = null;
+							if (curseur_fictif >= 0) {
+								grille.curseur = curseur_fictif;
+								curseur_fictif = -1;
+							} else {
+								grille.curseur = pixel2offset(lastClic.x);
+							}
+							grille.repaint();
+						} else {
+							if (!MouseEventTools.isControlOrMetaDown(e)) {
+								grille.getBlocsSelectionnes().clear();
+								grille.getBlocsSelectionnes().add(bloc);
+								grille.repaint();
+							}
+						}
+						break;
+					case 2:
+						if (bloc != null) {
+							grille.fenetre.showBlocControls(bloc);
+						} else {
+							grille.fenetre.controles.play();
+						}
+
+						break;
+					}
+
+					break;
+				}
+			}
+		});
+
+		this.addMouseMotionListener(new MouseMotionListener() {
+
+			public void mouseMoved(MouseEvent e) {
+				if (MouseEventTools.isControlOrMetaDown(e)) {
+					calculeCurseurFictif(e);
+					repaint();
+				} else {
+					if (curseur_fictif != -1) {
+						curseur_fictif = -1;
+						repaint();
+					}
+				}
+				if (e.isShiftDown() && selection != null) {
+					if (Math.abs(e.getX() - offset2pixel(selection.getFin())) < PIXEL_TOLERANCE || Math.abs(e.getX() - offset2pixel(selection.getDebut())) < PIXEL_TOLERANCE) {
+						setCursor(RESIZE_CURSOR);
+					} else {
+						setCursor(DEFAULT_CURSOR);
+					}
+				} else {
+					BlocPositionne bp = blocAt(e.getPoint());
+					if (bp != null) {
+						if (Math.abs(e.getX() - offset2pixel(bp.getFin())) < PIXEL_TOLERANCE || Math.abs(e.getX() - offset2pixel(bp.getDebut())) < PIXEL_TOLERANCE) {
+							setCursor(RESIZE_CURSOR);
+						} else {
+							setCursor(DEFAULT_CURSOR);
+						}
+					} else {
+						setCursor(DEFAULT_CURSOR);
+					}
+				}
+			}
+
+			public void mouseDragged(MouseEvent e) {
+				lastDrag = e.getPoint();
+				int lastDragX = pixel2offset(lastDrag.x);
+				if (MouseEventTools.isControlOrMetaDown(e)) {
+					calculeCurseurFictif(e);
+					lastDragX = curseur_fictif;
+				}
+				switch (dragAction) {
+				case DATA_SELECTION:
+					selection.bouge(lastDragX);
+					break;
+				case BLOC_RESIZE_LEFT:
+					decalageResize = lastDragX - blocLastPress.getDebut();
+					for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+						int a = bp.getLength();
+						if (a < decalageResize) {
+							decalageResize = a;
+						}
+					}
+					break;
+				case BLOC_RESIZE_RIGHT:
+					decalageResize = lastDragX - blocLastPress.getFin();
+					for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+						int a = bp.getLength();
+						if (a < -decalageResize) {
+							decalageResize = -a;
+						}
+					}
+					break;
+				case GRID_MOVE:
+					// on déplace la vue
+					int newOffset = offsetGlobalLastPress - (pixel2offset(lastDrag.x) - pixel2offset(lastPress.x));
+					int newY = yLastPress - (lastDrag.y - lastPress.y);
+					grille.setOffset(newOffset);
+					grille.setScrollVValue(newY);
+					break;
+				case BLOC_MOVE:
+					int ancienDecalage = decalageLigne;
+					decalageLigne = ligneAt(lastDrag) - ligneAt(lastPress);
+					for (BlocPositionne bp : grille.getBlocsSelectionnes()) {
+						// il faut s'assurer qu'on ne déborde pas des
+						// lignes
+						if (bp.getLigne() + decalageLigne < 0 || bp.getLigne() + decalageLigne >= grille.nbLignes) {
+							decalageLigne = ancienDecalage;
+							break;
+						}
+					}
+					decalageOffset = pixel2offset(lastDrag.x) - pixel2offset(lastPress.x);
+					break;
+
+				}
+
+				repaint();
+			}
+		});
+
+		this.addMouseWheelListener(new MouseWheelListener() {
+			@Override
+			public void mouseWheelMoved(MouseWheelEvent e) {
+				if (e.isAltDown()) {
+					int curseur = grille.curseur;
+					grille.curseur = GrillePanel.this.pixel2offset(e.getX());
+					grille.fenetre.controles.changeZoom(-e.getWheelRotation());
+					grille.curseur = curseur;
+					repaint();
+				} else if( e.isShiftDown() ){ //corresponds to horizontal scrolling on Mac
+					JScrollBar scrollH = grille.getScrollH();
+					int value = scrollH.getValue();
+					value += 4 * e.getWheelRotation();
+					scrollH.setValue(value);
+					
+				} else {
+					JScrollBar scrollV = grille.getScrollV();
+					int value = scrollV.getValue();
+					value += 2 * e.getWheelRotation();
+					scrollV.setValue(value);
+				}
+			}
+		});
+
+		this.addMouseListener(new PopupListener() {
+			@Override
+			public JPopupMenu showMenu(MouseEvent e) {
+				lastClic = e.getPoint();
+				JPopupMenu popup = new JPopupMenu();
+				final BlocPositionne blocPos = blocAt(e.getPoint());
+				if (blocPos != null) {
+					JMenuItem menuItem;
+
+					popup.add(getMenuEffets());
+
+					menuItem = new JMenuItem("Supprimer");
+					menuItem.addActionListener(new ActionListener() {
+						public void actionPerformed(ActionEvent e) {
+							grille.supprimeSelection();
+						}
+					});
+					popup.add(menuItem);
+
+					if (blocPos.getBloc() instanceof Frequencable) {
+						menuItem = new JMenuItem("Frequenceur");
+						menuItem.addActionListener(new ActionListener() {
+							public void actionPerformed(ActionEvent arg0) {
+								try {
+									Frequencable frequencable = (Frequencable) XmlTools.fromXML(XmlTools.toXML(blocPos.getBloc()));
+									Frequenceur fre = new Frequenceur(frequencable);
+									BlocPositionne bpFre = new BlocPositionne(grille, fre, blocPos.getLigne(), blocPos.getDebut());
+									ActionHistoriqueMultiple ah = new ActionHistoriqueMultiple("Frequenceur");
+									ah.addAction(new SupprimeBloc(grille, blocPos));
+									ah.addAction(new AjouteBloc(grille, bpFre));
+									grille.getHistorique().execute(ah);
+								} catch (XMLException e) {
+									e.printStackTrace();
+								}
+							}
+						});
+						popup.add(menuItem);
+					}
+
+					if (blocPos.getBloc() instanceof Geneticable) {
+						menuItem = new JMenuItem("Genetics Explorer");
+						menuItem.addActionListener(new ActionListener() {
+							public void actionPerformed(ActionEvent arg0) {
+								GeneticExplorer gen = new GeneticExplorer();
+								gen.init(blocPos.getBloc());
+								GeneticExplorerPanel panel = new GeneticExplorerPanel(gen, GeneticableAction.getDefaultBlocGrilleList(grille));
+								JFrame frame = new JFrame();
+								frame.getContentPane().add(panel);
+								frame.pack();
+								frame.setLocationRelativeTo(null);
+								frame.setVisible(true);
+							}
+						});
+						popup.add(menuItem);
+					}
+
+				} else {
+					popup.add(getMenuBlocs());
+
+				}
+				return popup;
+			}
+		});
+
+		initActionMap();
+		initInputMap();
+	}
+	
+	private void initActionMap(){
+		ActionMap actionMap = this.getActionMap();
+		actionMap.put(MyKeyStrokes.VOLUME_DOWN_BLOC, new MyAction("Volume down bloc", null, "Volume down bloc", null) {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				volumeDownBLoc();
+			}
+		});
+		actionMap.put(MyKeyStrokes.VOLUME_UP_BLOC, new MyAction("Volume up bloc", null, "Volume up bloc", null) {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				volumeUpBLoc();
+			}
+		});
+	}
+	
+	private void initInputMap(){
+		this.getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(MyKeyStrokes.VOLUME_DOWN_BLOC, MyKeyStrokes.VOLUME_DOWN_BLOC);
+		this.getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(MyKeyStrokes.VOLUME_UP_BLOC, MyKeyStrokes.VOLUME_UP_BLOC);
+	}
+
+	private void volumeDownBLoc(){
+		for(BlocPositionne bp : grille.getBlocsSelectionnes()){
+			bp.volumeDown();
+		}
+		repaint();
+	}
+	private void volumeUpBLoc(){
+		for(BlocPositionne bp : grille.getBlocsSelectionnes()){
+			bp.volumeUp();
+		}
+		repaint();
+	}
+
+	@Override
+	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		Graphics2D g2 = (Graphics2D) g;
+
+		int hauteurGraduations = -grille.getSrollVValue();
+
+		g2.setColor(Colors.GRID_LINES);
+		
+		for (int i = 0; i < grille.nbLignes; i++) {
+			int h = hauteurGraduations + hauteurLigne * i;
+			g2.drawLine(0, h, this.getWidth(), h);
+			g2.drawLine(0, h + hauteurLigne, this.getWidth(), h + hauteurLigne);
+		}
+
+		for (BlocPositionne bp : grille.getBlocs()) {
+			drawBloc(bp, g2, hauteurGraduations);
+		}
+
+		// affiche le rythme solitaire
+		drawRythm(grille.getRythm(), 0, -1, g2, hauteurGraduations);
+
+		// affiche la sélection
+		if (selection != null) {
+			g2.setColor(Colors.SELECTION);
+
+			int px1 = offset2pixel(selection.getDebut());
+			int px2 = offset2pixel(selection.getFin());
+			Rectangle rect = new Rectangle(px1, 0, px2 - px1, getHeight());
+			g2.fill(rect);
+		}
+
+		// affiche le curseur
+		g2.setColor(Colors.CURSEUR);
+		int px = offset2pixel(grille.curseur);
+		g2.drawLine(px, 0, px, getHeight());
+		if (curseur_fictif >= 0) {
+			// affiche le curseur fictif
+			g2.setColor(Colors.CURSEUR_FICTIF);
+			px = offset2pixel(curseur_fictif);
+			g2.drawLine(px, 0, px, getHeight());
+		}
+
+		//TODO système de listeners
+//		if (stillNeedRepaint) {
+//			System.out.println("GrillePanel stillNeedRepaint");
+//			// on repaint dans t millisecondes
+//			long time = 100;
+//			Timer timer = new Timer();
+//			timer.schedule(new TimerTask() {
+//				@Override
+//				public void run() {
+//					repaint();
+//				}
+//			}, time);
+//		}
+
+	}
+
+	public int offset2pixel(int offset) {
+		int val = offset - grille.getOffset();
+		int nbFramesPerPixel = grille.controles.getFramesPerPixel();
+		if (nbFramesPerPixel > 0) {
+			return val / nbFramesPerPixel;
+		} else {
+			return val * (-nbFramesPerPixel);
+		}
+	}
+
+	public int pixel2offset(int pixel) {
+		int val = pixel;
+		int nbFramesPerPixel = grille.controles.getFramesPerPixel();
+		if (nbFramesPerPixel > 0) {
+			val *= nbFramesPerPixel;
+		} else {
+			val /= (-nbFramesPerPixel);
+		}
+		return grille.getOffset() + val;
+	}
+
+	public int ligneAt(Point p) {
+		int hauteurGraduations = grille.getSrollVValue();
+		int y = p.y + hauteurGraduations;
+		int n = y / hauteurLigne;
+		// if (n < 0) {
+		// n = 0;
+		// }
+		// if (n > grille.nbLignes - 1) {
+		// n = grille.nbLignes - 1;
+		// }
+		return n;
+	}
+
+	public BlocPositionne blocAt(Point p) {
+		int ligne = ligneAt(p);
+		int x = p.x;
+		for (BlocPositionne bp : grille.getBlocs()) {
+			if (bp.getLigne() == ligne && offset2pixel(bp.getDebut()) <= x && offset2pixel(bp.getFin()) >= x) {
+				return bp;
+			}
+		}
+		return null;
+	}
+
+	public void drawBloc(BlocPositionne bp, Graphics2D g2, int hauteurGraduations) {
+		Bloc b = bp.getBloc();
+		float[] data = bp.getData();
+		
+//		if( data == null ){
+//			//TODO
+//			return;
+//		}
+
+		Color blocColor = b.getOutsideColor();
+
+		int debutBloc = bp.getDebut();
+		int finBloc = bp.getFin();
+		int ligne = bp.getLigne();
+
+		Stroke strokeContour = null;
+		BlocDrawing type = BlocDrawing.FIXE;
+		if (grille.getBlocsSelectionnes().contains(bp)) {
+			strokeContour = STROKE_SELECTED_BLOC_CONTOUR;
+			switch (dragAction) {
+			case BLOC_MOVE:
+				ligne += decalageLigne;
+				debutBloc += decalageOffset;
+				finBloc += decalageOffset;
+				type = BlocDrawing.DEPLACEMENT;
+				break;
+			case BLOC_RESIZE_LEFT:
+				type = BlocDrawing.RESIZE_GAUCHE;
+				break;
+			case BLOC_RESIZE_RIGHT:
+				type = BlocDrawing.RESIZE_DROIT;
+				break;
+			default:
+				type = BlocDrawing.SELECTION;
+				break;
+			}
+		} else {
+			strokeContour = STROKE_BLOC_CONTOUR;
+		}
+		int h = hauteurGraduations + hauteurLigne * ligne;
+		int milieu = h + hauteurLigne / 2;
+
+		int offsetMin = grille.getOffset();
+		int offsetMax = offsetMin;
+
+		int nbFramesPerPixel = grille.controles.getFramesPerPixel();
+		if (nbFramesPerPixel > 0) {
+			offsetMax += this.getWidth() * nbFramesPerPixel;
+		} else {
+			offsetMax += this.getWidth() / (-nbFramesPerPixel);
+		}
+
+		if (debutBloc < offsetMax && finBloc > offsetMin) {
+			int premierPix = 0;
+			int numFrame = offsetMin - debutBloc;
+			int dernierPix = this.getWidth();
+			if (debutBloc > offsetMin) {
+				premierPix = (debutBloc - offsetMin);
+				if (nbFramesPerPixel > 0) {
+					premierPix /= nbFramesPerPixel;
+				} else {
+					premierPix *= -nbFramesPerPixel;
+				}
+				numFrame = 0;
+			}
+			if (finBloc < offsetMax) {
+				int qte = (finBloc - offsetMin);
+				if (nbFramesPerPixel > 0) {
+					qte /= nbFramesPerPixel;
+				} else {
+					qte *= -nbFramesPerPixel;
+				}
+				dernierPix = qte;
+			}
+			// fill in with bloc color
+			g2.setColor(blocColor);
+			GradientPaint gradient = new GradientPaint(0, h, Colors.OUTSIDE_BLOC_COLOR, 0, h + hauteurLigne / 2, blocColor, true);
+			g2.setPaint(gradient);
+//			Rectangle rect = new Rectangle(premierPix, h + 1, dernierPix - premierPix, hauteurLigne - 1);
+//			g2.fill(rect);
+			g2.fillRoundRect(premierPix, h, dernierPix-premierPix, hauteurLigne, BLOC_ROUND_RECT_ARC_SIZE, BLOC_ROUND_RECT_ARC_SIZE);
+
+			// The sound wave
+			g2.setColor(Colors.COLOR_DATA);
+			g2.setStroke(new BasicStroke());
+			if (nbFramesPerPixel >= 1) {
+				float[] minFrames = bp.getMinFrames(nbFramesPerPixel);
+				float[] maxFrames = bp.getMaxFrames(nbFramesPerPixel);
+				int realPx = numFrame / nbFramesPerPixel;
+				for (int px = premierPix; px < dernierPix; px++) {
+					double min = minFrames[realPx + px - premierPix]; // TODO :
+																	// ArrayIndexOutOfBounds
+					double max = maxFrames[realPx + px - premierPix];
+					int valMin = (int) (min * hauteurLigne / 2);
+					int valMax = (int) (max * hauteurLigne / 2);
+					g2.drawLine(px, milieu - valMin, px, milieu - valMax);
+				}
+			} else {
+				g2.drawLine(premierPix, milieu, dernierPix, milieu);
+				int pasPixel = -nbFramesPerPixel;
+				int valPrecedente = 0;
+				int n = (dernierPix - premierPix) / pasPixel;
+				for (int px = premierPix; px < dernierPix; px += pasPixel, numFrame += 1) {
+					// byte v = (byte)getShort(data[f*nbBytesParFrame+1],
+					// data[f*nbBytesParFrame]);
+					double v = data[numFrame];
+					double max = v;
+					int val = (int) (max * hauteurLigne / 2);
+					g2.drawLine(px, milieu - val + 1, px, milieu - val - 1);
+					if (numFrame % 10 == 0) {
+						// g2.drawString(""+numFrame, px, milieu-val-2);
+					}
+					if (px > premierPix) {
+						g2.drawLine(px - pasPixel, milieu - valPrecedente, px, milieu - val);
+					}
+					valPrecedente = val;
+				}
+
+			}
+			if (type == BlocDrawing.RESIZE_DROIT || type == BlocDrawing.RESIZE_GAUCHE) {
+				g2.setColor(blocColor);
+				int pix = 0;
+				if (type == BlocDrawing.RESIZE_DROIT) {
+					pix = dernierPix;
+				} else {
+					pix = premierPix;
+				}
+				int ultimePix = offset2pixel(pixel2offset(pix) + decalageResize);
+				// System.out.println("pix2off("+pix+") = "+pixel2offset(pix));
+				// System.out.println(" *** ultimePix = offset2pixel( pix2off("+pix+") + "+decalageResize+") = "+ultimePix);
+				if (ultimePix < pix) {
+					int temp = ultimePix;
+					ultimePix = pix;
+					pix = temp;
+				}
+				for (int px = pix + 1; px < ultimePix; px++) {
+					g2.drawLine(px, h + 1, px, h + hauteurLigne - 1);
+				}
+				/*
+				 * g2.setColor(Color.black); g2.drawLine(ultimePix, h + 1,
+				 * ultimePix, h + hauteurLigne - 1); g2.drawLine(pix, h + 1,
+				 * pix, h + hauteurLigne - 1);
+				 */
+
+			}
+			
+			// The contour
+			g2.setStroke(strokeContour);
+			g2.setColor(Colors.COLOR_ROUND_RECT);
+			g2.drawRoundRect(premierPix, h, dernierPix-premierPix-1, hauteurLigne, BLOC_ROUND_RECT_ARC_SIZE, BLOC_ROUND_RECT_ARC_SIZE);
+
+			g2.setStroke(new BasicStroke());
+		}
+
+		// Affiche les rythmes de ce bloc
+		List<Rythm> rythmes = b.getRythms();
+		for (Rythm rythm : rythmes) {
+			drawRythm(rythm, debutBloc, ligne, g2, hauteurGraduations);
+		}
+
+	}
+
+	public void drawRythm(Rythm rythm, int offset, int ligne, Graphics2D g2, int hauteurGraduations) {
+		g2.setColor(Colors.OUTSIDE_COLOR_RYTHM);
+
+		int minH = 0;
+		int maxH = hauteurGraduations;
+		if (ligne < 0) {
+			// Toute la hauteur du panel
+			minH = 0;
+			maxH = grille.nbLignes * hauteurLigne;
+		} else {
+			// Il faut calculer les bornes en pixel
+			minH = hauteurGraduations + hauteurLigne * ligne;
+			maxH = minH + hauteurLigne;
+		}
+
+		int off = offset;
+		for (int i = 0, l = rythm.size(); i < l; i++) {
+			off += rythm.get(i).getOffset();
+			// System.out.println("off(hits["+i+"]) = "+off);
+			int pix = offset2pixel(off);
+			if (pix > this.getWidth()) {
+				return;
+			}
+			if (pix > 0) {
+				g2.drawLine(pix, minH, pix, maxH);
+			}
+		}
+
+	}
+
+	public Point getLastClic() {
+		return lastClic;
+	}
+
+	public ArrayList<BlocPositionne> getBlocsFixes() {
+		ArrayList<BlocPositionne> blocsFixes = new ArrayList<BlocPositionne>();
+		for (BlocPositionne bp : grille.getBlocs()) {
+			if (!grille.getBlocsSelectionnes().contains(bp)) {
+				blocsFixes.add(bp);
+			}
+		}
+		return blocsFixes;
+	}
+
+	public Selection getSelection() {
+		return selection;
+	}
+
+	public float[] getSelectedData() {
+		if (selection != null) {
+			// TODO : c'est moche tous ces accès... le grillPlayer devrait
+			// appartenir à la grille (OU PAS)
+			grille.fenetre.grillePlayer.load(selection.getDebut(), selection.getFin());
+			float[] data = grille.fenetre.grillePlayer.getData();
+			float[] data2 = new float[selection.getFin() - selection.getDebut()];
+			for (int i = 0, l = data2.length; i < l; i++) {
+				data2[i] = data[i + selection.getDebut()];
+			}
+			return data2;
+		}
+		return null;
+	}
+
+	public void setSelection(Selection selection) {
+		this.selection = selection;
+	}
+
+	public void calculeCurseurFictif(MouseEvent e) {
+		// affiche le curseur fictif sur un "point particulier" de la grille
+		// (debut ou fin de bloc le plus proche)
+		int souris = pixel2offset(e.getX());
+		// Recherche des points particuliers
+		ArrayList<Integer> pointsParticuliers = new ArrayList<Integer>();
+		pointsParticuliers.add(0);
+		for (BlocPositionne bp_ : grille.getBlocs()) {
+			pointsParticuliers.add(bp_.getDebut());
+			pointsParticuliers.add(bp_.getFin());
+		}
+		// On récupère le plus proche
+		int distMin = Integer.MAX_VALUE;
+		for (Integer i : pointsParticuliers) {
+			if (Math.abs(i - souris) < distMin) {
+				distMin = Math.abs(i - souris);
+				curseur_fictif = i;
+			}
+		}
+	}
+
+	// ************************************************************************************
+	// //
+	// ************************************ MENU
+	// ****************************************** //
+	// ************************************************************************************
+	// //
+
+	// MENUS
+
+	public JMenuBar createMenuBar() {
+//		System.out.println("GrillePanel.createMenuBar() historique:" + grille.getHistorique());
+		JMenuBar menuBar = new JMenuBar();
+		JMenu menu;
+		JMenuItem item;
+
+		// *********************** FILE ************************** //
+		menu = new JMenu("File");
+		grille.getOpenSaveManager().addToMenu(menu);
+
+		menuBar.add(menu);
+
+		// *********************** EDIT ************************** //
+		menu = new JMenu("Edit");
+		// ********** UNDO ********** //
+		menu.add(grille.getHistorique().getUndoAction());
+		// ********** REDO ********** //
+		menu.add(grille.getHistorique().getRedoAction());
+
+		menu.addSeparator();
+		// ********** CUT ********** //
+		item = new JMenuItem("Cut");
+		item.setAccelerator(KeyStroke.getKeyStroke('X', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				GrillePanel.this.grille.copie();
+				GrillePanel.this.grille.supprimeSelection();
+			}
+		});
+		menu.add(item);
+		// ********** COPY ********** //
+		item = new JMenuItem("Copy");
+		item.setAccelerator(KeyStroke.getKeyStroke('C', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				GrillePanel.this.grille.copie();
+			}
+		});
+		menu.add(item);
+		// ********** PASTE ********** //
+		item = new JMenuItem("Paste");
+		item.setAccelerator(KeyStroke.getKeyStroke('V', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				GrillePanel.this.grille.colle();
+			}
+		});
+		menu.add(item);
+
+		menu.addSeparator();
+		// ********** SELECT ALL ********** //
+		item = new JMenuItem("Select All");
+		item.setAccelerator(KeyStroke.getKeyStroke('A', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				GrillePanel.this.grille.selecionneTout();
+			}
+		});
+		menu.add(item);
+
+		// ********** DELETE ********** //
+		item = new JMenuItem("Delete");
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				GrillePanel.this.grille.supprimeSelection();
+			}
+		});
+		menu.add(item);
+
+		menuBar.add(menu);
+
+		// *********************** BLOCS ************************** //
+		menuBar.add(getMenuBlocs());
+
+		// *********************** EFFETS ************************** //
+
+		menuBar.add(getMenuEffets());
+
+		// *********************** SELECTION ************************** //
+
+		menu = new JMenu("Selection");
+		// ********** SELECTION COPY ********** //
+		item = new JMenuItem("Copy");
+		item.setAccelerator(KeyStroke.getKeyStroke('C', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() + KeyEvent.SHIFT_DOWN_MASK));
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				grille.setClipboard(GrillePanel.this.grille.getPanelGrille().getSelectedData());
+			}
+		});
+		menu.add(item);
+		// ********** SELECTION PASTE ********** //
+		item = new JMenuItem("Paste");
+		item.setAccelerator(KeyStroke.getKeyStroke('V', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask() + KeyEvent.SHIFT_DOWN_MASK));
+		item.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent arg0) {
+				if (grille.getClipboard() != null) {
+					try {
+						File file = IOtools.createTempFile("clipboard", ".wav", IOtools.getTemporaryFolder());
+						SoundTools.writeDataToFile(grille.getClipboard(), file);
+						BlocFichier bloc = new BlocFichier(file);
+
+						AjouteBloc action = new AjouteBloc(GrillePanel.this.grille, bloc);
+						grille.getHistorique().execute(action);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		menu.add(item);
+
+		menuBar.add(menu);
+
+		// *********************** ANALYSE ************************** //
+
+		menuBar.add(getMenuAnalyse());
+
+		// *********************** Affichage ************************** //
+		menu = new JMenu("Affichage");
+		// ********** HISTORIQUE ********** //
+		menu.add(grille.getHistorique().getShowAction());
+		// ********** MEMORY ********** //
+		ShowableMenuFrame memory = new ShowableMenuFrame("Memory");
+		Thread th = new Thread(new MemoryStatus(memory));
+		th.start();
+		menu.add(memory.getShowAction());
+
+		menuBar.add(menu);
+
+		return menuBar;
+	}
+
+	public JMenu getMenuBlocs() {
+		JMenu menu = new JMenu("Bloc");
+
+		for (final Class<? extends Bloc> c : Bloc.liste) {
+			JMenuItem item = new JMenuItem(c.getSimpleName());
+			item.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					try {
+						Bloc b = c.newInstance();
+						if( b instanceof BlocFichier){
+							DialogueFichier dial = new DialogueFichier("Open", GrillePanel.this, null, DialogueFichier.getSupportedAudioFileExtensions());
+							File f = dial.getSelectedFile();
+							if( f == null ){
+								return;
+							}
+							((BlocFichier) b).setFichier(f);
+						}
+						AjouteBloc action = new AjouteBloc(GrillePanel.this.grille, b);
+						grille.getHistorique().execute(action);
+					} catch (InstantiationException e) {
+						e.printStackTrace();
+					} catch (IllegalAccessException e) {
+						e.printStackTrace();
+					}
+				}
+			});
+			menu.add(item);
+		}
+
+		return menu;
+	}
+
+	public JMenu getMenuEffets() {
+		JMenu menu = new JMenu("Effet");
+
+		for (final Class<? extends Effet> c : Effet.liste) {
+			JMenuItem item = new JMenuItem(c.getSimpleName());
+			item.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					if (!GrillePanel.this.grille.getBlocsSelectionnes().isEmpty()) {
+						try {
+							Effet eff = c.newInstance();
+							ActionHistoriqueMultiple action = new ActionHistoriqueMultiple("Ajoute Effet");
+							for (BlocPositionne bp : GrillePanel.this.grille.getBlocsSelectionnes()) {
+								action.addAction(new AjouteEffet(GrillePanel.this.grille, eff, bp));
+							}
+							grille.getHistorique().execute(action);
+
+						} catch (InstantiationException e) {
+							e.printStackTrace();
+						} catch (IllegalAccessException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			});
+			menu.add(item);
+		}
+
+		return menu;
+
+	}
+
+	public JMenu getMenuAnalyse() {
+		JMenu menu = new JMenu("Analyse");
+
+		for (final Class<? extends Analyser> c : Bloc.listeAnalysers) {
+			JMenuItem item = new JMenuItem(c.getSimpleName());
+			item.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					float[] data = GrillePanel.this.grille.getPanelGrille().getSelectedData();
+					if (data != null) {
+						try {
+							Analyser b = c.newInstance();
+							b.setGrille(GrillePanel.this.grille);
+							b.analyse(data);
+						} catch (InstantiationException e) {
+							e.printStackTrace();
+						} catch (IllegalAccessException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			});
+			menu.add(item);
+
+		}
+
+		return menu;
+
+	}
+
+}

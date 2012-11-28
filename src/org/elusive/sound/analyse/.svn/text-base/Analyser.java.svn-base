@@ -1,0 +1,14 @@
+package org.elusive.sound.analyse;
+
+import org.elusive.ui.grille.Grille;
+
+public abstract class Analyser {
+	
+	public abstract void analyse(float[] data);
+	
+	protected Grille grille;
+	public void setGrille(Grille grille){
+		this.grille = grille;
+	}
+
+}

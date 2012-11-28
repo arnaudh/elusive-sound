@@ -1,0 +1,101 @@
+package org.elusive.sound.melody.tabs;
+
+import java.awt.Dimension;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
+
+import javax.swing.JMenuBar;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+
+import org.elusive.sound.blocs.frequenceur.NotePlacee;
+import org.elusive.sound.genetics.Geneticable;
+import org.elusive.sound.melody.partition.Partition;
+import org.elusive.sound.melody.tabs.ui.TabPartitionEditor;
+import org.elusive.sound.rythm.Rythm;
+import org.elusive.ui.fenetre.ElusivePanel;
+import org.elusive.ui.menus.MenuTools;
+import org.elusive.ui.tools.PopupListener;
+
+public class TabPartition extends Partition {
+
+	private Rythm rythm = Rythm.createSimple(6);
+	private GuitarTab tab = GuitarTab.createSimple();
+
+	public TabPartition() {
+		recalculeNotes();
+	}
+
+	@Override
+	public ElusivePanel createElusivePanel() {
+		final TabPartitionEditor editor = new TabPartitionEditor(this);
+
+		ElusivePanel panel = new ElusivePanel("Tab Partition");
+//		panel.setMenuBar(editor.createMenuBar()); // NON le menu peut être
+//													// dynamique
+//		editor.getTextcomp().addFocusListener(panel);
+
+		panel.add(editor);
+
+		return panel;
+	}
+
+	private void recalculeNotes() {
+		notes = rythm.applyTo(tab);
+		updated();
+	}
+
+	public static TabPartition createFromNotes(List<NotePlacee> notes) {
+		// TODO
+		return new TabPartition();
+	}
+
+	public Rythm getRythm() {
+		return rythm;
+	}
+
+	public void setRythm(Rythm rythm) {
+		this.rythm = rythm;
+		recalculeNotes();
+	}
+
+	public GuitarTab getTab() {
+		return tab;
+	}
+
+	public void setTab(GuitarTab tab) {
+		this.tab = tab;
+		recalculeNotes();
+	}
+
+	// ////////////////////////// GENETICS /////////////////////////////////
+
+	private boolean mutateRythm = true;
+	private boolean mutateMelody = true;
+
+	@Override
+	public Geneticable mutate(double strength) {
+		// TODO Auto-generated method stub
+		TabPartition partition = new TabPartition();
+		if (mutateRythm) {
+			partition.setRythm((Rythm) rythm.mutate(strength));
+		} else {
+			partition.setRythm((Rythm) rythm.mutate(0));
+		}
+		if( mutateMelody ){
+			partition.setTab( (GuitarTab) tab.mutate(strength) );
+		}else{
+			partition.setTab( (GuitarTab) tab.mutate(0) );			
+		}
+
+		return partition;
+	}
+
+	@Override
+	public Geneticable combineWith(Geneticable gen) {
+		// TODO Auto-generated method stub
+		return this;
+	}
+
+}

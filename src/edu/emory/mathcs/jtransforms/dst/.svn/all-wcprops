@@ -1,0 +1,71 @@
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst
+END
+DoubleDST_1D.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/DoubleDST_1D.java
+END
+DoubleDST_2D.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/DoubleDST_2D.java
+END
+package.html
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/package.html
+END
+DoubleDST_3D.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/DoubleDST_3D.java
+END
+FloatDST_1D.java
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/FloatDST_1D.java
+END
+FloatDST_2D.java
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/FloatDST_2D.java
+END
+AccuracyCheckFloatDST.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/AccuracyCheckFloatDST.java
+END
+BenchmarkDoubleDST.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/BenchmarkDoubleDST.java
+END
+FloatDST_3D.java
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/FloatDST_3D.java
+END
+BenchmarkFloatDST.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/BenchmarkFloatDST.java
+END
+AccuracyCheckDoubleDST.java
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/elusive/!svn/ver/7/ElusiveSound/src/edu/emory/mathcs/jtransforms/dst/AccuracyCheckDoubleDST.java
+END

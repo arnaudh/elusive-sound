@@ -1,0 +1,5 @@
+package org.elusive.ui.grille;
+
+enum DragAction {
+	NONE, GRID_MOVE, BLOC_MOVE, BLOC_SELECTION, BLOC_RESIZE_LEFT, BLOC_RESIZE_RIGHT, DATA_SELECTION,
+}

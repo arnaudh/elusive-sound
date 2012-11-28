@@ -1,0 +1,52 @@
+package org.elusive.ui.widgets;
+
+import java.awt.Dimension;
+import java.util.Hashtable;
+
+import javax.swing.JLabel;
+import javax.swing.JSlider;
+
+public class TempoSlider extends JSlider {
+
+    final int SCALE = 10;
+    final int tick = 20;
+    final int min = 40;
+    final int max = 200;
+    final int init = 126;
+    
+    Dimension dim = new Dimension(40, 200);
+    
+    
+    
+	public TempoSlider(){
+		super();
+		
+		this.setPaintLabels(true);
+        this.setPaintTicks(true);
+        
+        setMinimum((int)(min*SCALE));
+        setMaximum((int)(max*SCALE));
+        setValue((int)(init*SCALE));
+		setOrientation(JSlider.VERTICAL);
+		setMinimumSize(dim);
+
+		
+        Hashtable<Integer, JLabel> ht = new Hashtable<Integer, JLabel>();
+        for (float i = min; i <= max; i+=tick)
+        {
+          JLabel l = new JLabel(""+i);
+          ht.put(new Integer((int)Math.rint(i*SCALE)), l);
+        }
+        this.setLabelTable(ht);
+        
+        this.setMajorTickSpacing(tick * SCALE);
+        //this.setMinorTickSpacing(10);
+        
+        
+	}
+
+    public float getFloatValue() {
+  	  return (float)getValue()/(float)SCALE;
+  	}
+
+}

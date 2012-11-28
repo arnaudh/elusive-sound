@@ -1,0 +1,154 @@
+package org.elusive.sound.melody.tabs;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elusive.sound.blocs.frequenceur.NotePlacee;
+import org.elusive.sound.melody.notes.Notes;
+
+
+public class TabNote {
+	
+	private int offset;
+	private int corde;
+	private int frette;
+	private SLIDE slideBefore = SLIDE.NO_SLIDE;
+	private SLIDE slideAfter = SLIDE.NO_SLIDE;
+	private boolean bend = false;
+	
+	private int globalOffset;
+	
+
+	enum SLIDE{
+		NO_SLIDE,
+		SLIDE_DOWN,
+		SLIDE_UP;
+	}
+	
+	public TabNote(int corde, int frette, int offset) {
+		this.offset = offset;
+		this.corde = corde;
+		this.frette = frette;
+	}
+	
+	public String toString(){
+		return "GuitarTabNote["+corde+", "+offset+", "+frette+"]";
+	}
+
+	public int getOffset() {
+		return offset;
+	}
+
+	public void setOffset(int offset) {
+		this.offset = offset;
+	}
+
+	public int getCorde() {
+		return corde;
+	}
+
+	public void setCorde(int corde) {
+		this.corde = corde;
+	}
+
+	public int getFrette() {
+		return frette;
+	}
+
+	public void setFrette(int frette) {
+		this.frette = frette;
+	}
+
+	public boolean isBend() {
+		return bend;
+	}
+
+	public void setBend(boolean bend) {
+		this.bend = bend;
+	}
+
+	public void setSlideBefore(SLIDE slideBefore) {
+		this.slideBefore = slideBefore;
+	}
+
+	public SLIDE getSlideBefore() {
+		return slideBefore;
+	}
+
+	public void setSlideAfter(SLIDE slideAfter) {
+		this.slideAfter = slideAfter;
+	}
+
+	public SLIDE getSlideAfter() {
+		return slideAfter;
+	}
+	
+//	0 1  2 3  4 5 6  7 8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35
+//	C C# D D# E F F# G G# A A# B  C  C# D  D# E  F  F# G  G# A  A# B  C  C# D  D# E  F  F# G  G# A  A# B 
+	public static int[] pitchCordes = {4, 9, 14, 19, 23, 28};
+	public double getFrequence() {
+		double fre = Notes.GetNoteFrequency(2, pitchCordes[corde] + getFrette());
+		return fre;
+	}
+
+	public List<NotePlacee> toNotesPlacees(int debut, int duree) {
+		List<NotePlacee> notesPlacees = new ArrayList<NotePlacee>();
+//		System.out.println(":::::::::::: toNotesPlacees, frequence = "+getFrequence());
+		if( getSlideBefore().equals(SLIDE.SLIDE_UP) ){
+//			System.out.println(":::SLIDE UPPPP");
+			int dureePalier = 50;
+			int nbPaliers = duree / dureePalier;
+			double frequenceDepart = getFrequence() - 50;
+			double augmentation = getFrequence() - frequenceDepart;
+			System.out.println("frequenceDépart : "+frequenceDepart);
+//			System.out.println("augmentation = "+augmentation);
+			for (int i = 0; i < nbPaliers; i++) {
+				double freq =  frequenceDepart + i*augmentation/(double)nbPaliers;
+//				System.out.println("freq["+i+"] = "+freq);
+				
+				dureePalier = (int) (44100 / freq);
+				notesPlacees.add(new NotePlacee(debut, freq, dureePalier));		
+				debut += dureePalier;	
+			}
+		}else{
+			notesPlacees.add(new NotePlacee(debut, getFrequence(), duree));
+		}
+		
+		
+		return notesPlacees;
+	}
+
+	public String toTabString() {
+		String s = this.getFrette() + "";
+		if (this.isBend()) {
+			s += "b";
+		}
+		switch (this.getSlideBefore()) {
+		case SLIDE_DOWN:
+			s = "\\" + s;
+			break;
+		case SLIDE_UP:
+			s = "/" + s;
+			break;
+		}
+		switch (this.getSlideAfter()) {
+		case SLIDE_DOWN:
+			s = s + "\\";
+			break;
+		case SLIDE_UP:
+			s = s + "/";
+			break;
+		}
+		return s;
+	}
+
+
+	public int getGlobalOffset() {
+		return globalOffset;
+	}
+
+	public void setGlobalOffset(int globalOffset) {
+		this.globalOffset = globalOffset;
+	}
+
+}

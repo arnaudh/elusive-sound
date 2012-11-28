@@ -1,0 +1,14 @@
+package org.elusive.main.historique.action;
+
+import org.elusive.ui.grille.Grille;
+import org.elusive.main.historique.ActionHistorique;
+
+public abstract class ActionHistoriqueGrille extends ActionHistorique {
+	
+	protected Grille grille;
+	
+	public ActionHistoriqueGrille(Grille g) {
+		grille = g;
+	}
+
+}

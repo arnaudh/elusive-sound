@@ -1,0 +1,67 @@
+package org.elusive.sound.rythm;
+
+import java.awt.Color;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+
+import javax.swing.JScrollPane;
+import javax.swing.JTextPane;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+
+import org.elusive.sound.melody.tabs.TabPartition;
+import org.elusive.ui.fenetre.ElusivePanel;
+import org.elusive.ui.tools.TextComponentTools;
+import org.elusive.ui.tools.ToggleInsertDocument;
+
+public class RythmEditor extends ElusivePanel {
+
+
+	private Rythm rythm;
+
+	private JTextPane textcomp;
+
+	private static final String DEFAULT_STYLE = "DefaultStyle";
+	private static final String STYLE_HIT = "StyleTabNote";
+	private static final String STYLE_TAB_NOTE_HIT = "StyleTabNoteHit";
+	
+	public RythmEditor(final Rythm rythm) {
+		super("Rythm Editor");
+		
+		this.rythm = rythm;
+		
+		ToggleInsertDocument doc = new ToggleInsertDocument();
+		textcomp = new JTextPane();
+		textcomp.setDocument(doc);
+//		textcomp.setText(rythm.toTabString());
+		textcomp.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				int k = e.getKeyCode();
+				if( k != KeyEvent.VK_LEFT && k != KeyEvent.VK_RIGHT && k != KeyEvent.VK_UP && k != KeyEvent.VK_DOWN ){ 
+					recalculeRythm();
+				}
+			}
+		});
+		textcomp.addKeyListener(doc);
+		TextComponentTools.addUndoRedo(textcomp);
+
+		// TEXT STYLES
+		textcomp.addStyle(DEFAULT_STYLE, null);
+		//
+		Style style = textcomp.addStyle(STYLE_HIT, null);
+		StyleConstants.setForeground(style, Color.BLUE);
+		StyleConstants.setBold(style, true);
+
+		recalculeRythm();
+
+//		JPanel panel = new JPanel(new BorderLayout());
+//		panel.add(textcomp);
+		JScrollPane scrollPane = new JScrollPane(textcomp);
+	}
+	
+	private void recalculeRythm(){
+		//Rythm.fromString(str) ...
+	}
+
+}

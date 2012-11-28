@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/elusive/!svn/ver/97/ElusiveSound/src/org/elusive/ui/grille
+END
+Graduations.java
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/elusive/!svn/ver/93/ElusiveSound/src/org/elusive/ui/grille/Graduations.java
+END
+Selection.java
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/elusive/!svn/ver/22/ElusiveSound/src/org/elusive/ui/grille/Selection.java
+END
+AfficheurDeBloc.java
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svn/elusive/!svn/ver/22/ElusiveSound/src/org/elusive/ui/grille/AfficheurDeBloc.java
+END
+IGrille2.java
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/elusive/!svn/ver/41/ElusiveSound/src/org/elusive/ui/grille/IGrille2.java
+END
+BlocDrawing.java
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/elusive/!svn/ver/100/ElusiveSound/src/org/elusive/ui/grille/BlocDrawing.java
+END
+DragAction.java
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/elusive/!svn/ver/100/ElusiveSound/src/org/elusive/ui/grille/DragAction.java
+END
+GrillePlayer.java
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/ui/grille/GrillePlayer.java
+END
+GrillePanel.java
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/ui/grille/GrillePanel.java
+END
+Grille.java
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/ui/grille/Grille.java
+END

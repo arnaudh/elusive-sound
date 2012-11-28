@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/elusive/!svn/ver/94/ElusiveSound/src/org/elusive/sound/analyse
+END
+DataConverter.java
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/analyse/DataConverter.java
+END
+FFTanalizer.java
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/analyse/FFTanalizer.java
+END
+PartitionExtractor.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/analyse/PartitionExtractor.java
+END
+Analyser.java
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/analyse/Analyser.java
+END

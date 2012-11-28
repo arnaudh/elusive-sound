@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/elusive/!svn/ver/99/ElusiveSound/src/org/elusive/sound/blocs
+END
+Bloc.java
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/blocs/Bloc.java
+END
+BlocGenerateur.java
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/blocs/BlocGenerateur.java
+END
+BlocTotal.java
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/blocs/BlocTotal.java
+END
+BlocPositionne.java
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/blocs/BlocPositionne.java
+END
+BlocFichier.java
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/elusive/!svn/ver/103/ElusiveSound/src/org/elusive/sound/blocs/BlocFichier.java
+END
