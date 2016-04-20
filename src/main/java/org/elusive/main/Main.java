@@ -16,8 +16,6 @@ import org.elusive.sound.blocs.additive.TimeAmplitude;
 import org.elusive.ui.fenetre.Fenetre;
 import org.elusive.ui.grille.Grid;
 
-import com.sun.tools.javadoc.Messager.ExitJavadoc;
-
 public class Main {
 	
 	public static boolean isMacOSX() {

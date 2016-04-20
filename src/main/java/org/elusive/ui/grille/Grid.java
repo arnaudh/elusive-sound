@@ -41,8 +41,6 @@ import org.elusive.ui.grille.line.GridLine;
 import org.elusive.ui.tools.file.FileDrop;
 import org.elusive.ui.tools.file.OpenSaveManager;
 
-import com.sun.management.OSMBeanFactory;
-
 public class Grid implements HistoryListener {
 
 	// static
