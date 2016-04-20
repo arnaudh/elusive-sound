@@ -75,7 +75,7 @@ public class GridPopupListener extends PopupListener {
 							GeneticExplorer gen = new GeneticExplorer();
 							gen.init(blocPos.getBloc());
 							GeneticExplorerPanel panel = new GeneticExplorerPanel(gen, GeneticableAction.getDefaultBlocGrilleList(grid));
-							JFrame frame = new JFrame();
+							JFrame frame = new JFrame("Genetic Explorer");
 							frame.getContentPane().add(panel);
 							frame.pack();
 							frame.setLocationRelativeTo(null);
