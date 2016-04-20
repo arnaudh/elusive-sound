@@ -13,7 +13,7 @@ public class ElusiveProperties {
 	private static Properties properties;
 	
 	private static File getFile() throws IOException{
-		String file = ElusiveProperties.class.getResource("/resources/properties/elusive.properties").getFile();
+		String file = ElusiveProperties.class.getResource("/properties/elusive.properties").getFile();
 //		System.out.println("ElusiveProperties.getFile() filename:"+file);
 		File f = new File(file);
 		if( !f.exists() ){

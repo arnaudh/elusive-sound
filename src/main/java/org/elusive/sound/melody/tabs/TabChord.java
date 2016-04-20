@@ -84,7 +84,7 @@ public class TabChord extends Tranche {
 		if( allChords == null ){
 			allChords = new ArrayList<TabChord>();
 			try {
-				FileInputStream fis = new FileInputStream(TabChord.class.getResource("/resources/tabs/chords/allChords.txt").getFile());
+				FileInputStream fis = new FileInputStream(TabChord.class.getResource("/tabs/chords/allChords.txt").getFile());
 				InputStreamReader isr = new InputStreamReader(fis);
 				BufferedReader br = new BufferedReader(isr);
 				String line;
