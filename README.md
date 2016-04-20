@@ -16,14 +16,16 @@ Linear software music sequencer
 ## How to run
 
 1. Compile
-```
-mvn compile
-```
+
+	```
+	mvn compile
+	```
 
 2. Run
-```
-mvn exec:java
-```
+
+	```
+	mvn exec:java
+	```
 
 ## Disclaimer
 
