@@ -1,7 +1,0 @@
-package org.elusive.sound.rythm;
-
-public interface RythmRecorderListener {
-
-	public void whenRythmChanged(Rythm rythm);
-	public void whenRecordFinished(Rythm rythm);
-}

@@ -1,90 +1,0 @@
-10
-
-dir
-99
-http://svn.iiens.net/svn/elusive/ElusiveSound/src/org/elusive/main
-http://svn.iiens.net/svn/elusive
-
-
-
-2011-09-12T14:11:38.864626Z
-97
-henry2008
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cbfac1fb-8551-4441-986d-1f37b0f52612
-
-actions
-dir
-
-tools
-dir
-
-xml
-dir
-
-performance
-dir
-
-Main.java
-file
-103
-
-
-
-2012-02-07T20:30:15.000000Z
-ed93d239ce807eb499eee3855b9f9c0c
-2012-02-08T00:50:09.461325Z
-103
-henry2008
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2738
-
-persistence
-dir
-
-
-
-add
-
-listeners
-dir
-
-historique
-dir
-
-properties
-dir
-
