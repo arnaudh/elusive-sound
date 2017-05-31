@@ -1,8 +1,6 @@
 # ElusiveSound
 
-[![security status](https://www.meterian.com/badge/gh/arnaudh/elusive-sound/security)](https://www.meterian.com/report/gh/arnaudh/elusive-sound)
-
-[![stability status](https://www.meterian.com/badge/gh/arnaudh/elusive-sound/stability)](https://www.meterian.com/report/gh/arnaudh/elusive-sound)
+[![security status](https://www.meterian.com/badge/gh/arnaudh/elusive-sound/security)](https://www.meterian.com/report/gh/arnaudh/elusive-sound) [![stability status](https://www.meterian.com/badge/gh/arnaudh/elusive-sound/stability)](https://www.meterian.com/report/gh/arnaudh/elusive-sound)
 
 Linear software music sequencer
 
