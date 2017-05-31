@@ -13,9 +13,9 @@ Linear software music sequencer
 
 ## Screenshots
 
-![screenshot1](docs/Screen Shot 1.png)
+![screenshot1](docs/screenshot-1.png)
 
-![screenshot2](docs/Screen Shot 2.png)
+![screenshot2](docs/screenshot-2.png)
 
 ## How to run
 
